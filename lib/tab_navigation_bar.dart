@@ -1,7 +1,17 @@
 library tab_navigation_bar;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
+import 'package:flutter/material.dart';
+
+class TabNavigationBar extends StatefulWidget {
+  const TabNavigationBar({super.key});
+
+  @override
+  State<TabNavigationBar> createState() => _TabNavigationBarState();
+}
+
+class _TabNavigationBarState extends State<TabNavigationBar> {
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
+  }
 }
