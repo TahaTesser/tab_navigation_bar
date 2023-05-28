@@ -26,7 +26,7 @@ class TabNavigationBarExample extends StatefulWidget {
 
 class _TabNavigationBarExampleState extends State<TabNavigationBarExample>
     with SingleTickerProviderStateMixin {
-  ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -45,6 +45,12 @@ class _TabNavigationBarExampleState extends State<TabNavigationBarExample>
                 (_scrollController.position.maxScrollExtent / 2.0) *
                     _animation.value);
       });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
