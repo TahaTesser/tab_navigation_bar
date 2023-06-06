@@ -60,8 +60,15 @@ class TabNavigationBar extends StatefulWidget implements PreferredSizeWidget {
 class _TabNavigationBarState extends State<TabNavigationBar> with SingleTickerProviderStateMixin {
   TabController? _controller;
   int? _currentIndex;
- ScrollNotificationObserverState? _scrollNotificationObserver;
+  ScrollNotificationObserverState? _scrollNotificationObserver;
   bool _scrolledUnder = false;
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
 
   void _updateTabController() {
     final TabController? newController = widget.controller ?? DefaultTabController.maybeOf(context);
@@ -92,6 +99,14 @@ class _TabNavigationBarState extends State<TabNavigationBar> with SingleTickerPr
   void _handleTabControllerTick() {
     if (_controller!.index != _currentIndex) {
       _currentIndex = _controller!.index;
+      final double maxScrollExtent = _scrollController.position.maxScrollExtent;
+      final double tabSize = maxScrollExtent / widget.tabs.length;
+      final double tabPosition = tabSize * (_currentIndex! + 1);
+      _scrollController.animateTo(
+        _currentIndex == 0 ? 0 : tabPosition,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
     setState(() {
       // Rebuild the tabs after a (potentially animated) index change
@@ -151,6 +166,7 @@ class _TabNavigationBarState extends State<TabNavigationBar> with SingleTickerPr
       _scrollNotificationObserver!.removeListener(_handleScrollNotification);
       _scrollNotificationObserver = null;
     }
+    _scrollController.dispose();
     _controller = null;
     super.dispose();
   }
@@ -178,16 +194,16 @@ class _TabNavigationBarState extends State<TabNavigationBar> with SingleTickerPr
       widget.onTap?.call(index);
     }
 
-
     final FlexibleSpaceBarSettings? settings = context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
     final Set<MaterialState> states = <MaterialState>{
       if (settings?.isScrolledUnder ?? _scrolledUnder)
         MaterialState.scrolledUnder,
     };
 
-    final EdgeInsetsGeometry effectiveBottomPadding = states.contains(MaterialState.scrolledUnder)
-      ? widget.padding.add(EdgeInsets.symmetric(horizontal: widget.padding.horizontal * 4))
-      : widget.padding;
+    EdgeInsetsGeometry effectiveBottomPadding = widget.padding;
+    if (states.contains(MaterialState.scrolledUnder) && mediaQuery.size.width > 600) {
+      effectiveBottomPadding = effectiveBottomPadding.add(EdgeInsets.symmetric(horizontal: widget.padding.horizontal * 4));
+    }
 
     return AnimatedPadding(
       padding: effectiveBottomPadding,
@@ -209,29 +225,35 @@ class _TabNavigationBarState extends State<TabNavigationBar> with SingleTickerPr
               PointerDeviceKind.touch,
               PointerDeviceKind.mouse,
             }),
-            child: ListView.builder(
-              itemCount: widget.tabs.length,
-              scrollDirection: Axis.horizontal,
-              physics: const ClampingScrollPhysics(),
-              itemBuilder:(BuildContext context, int index) {
-                return _SelectableAnimatedBuilder(
-                  duration: const Duration(milliseconds: 500),
-                  isSelected: index == _currentIndex,
-                  builder: (BuildContext context, Animation<double> animation) {
-                    return ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: (mediaQuery.size.width - effectiveBottomPadding.horizontal) / 3,
-                      ),
-                      child: _TabDestinationInfo(
-                        selectedIndex: _currentIndex ?? 0,
-                        selectedAnimation: animation,
-                        onTap: () => handleTap(index),
-                        child: wrappedTabs[index],
-                      ),
-                    );
-                  }
-                );
-              },
+            child: Scrollbar(
+              controller: _scrollController,
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: widget.tabs.length,
+                scrollDirection: Axis.horizontal,
+                physics: const ClampingScrollPhysics(),
+                itemBuilder:(BuildContext context, int index) {
+                  return _SelectableAnimatedBuilder(
+                    duration: const Duration(milliseconds: 500),
+                    isSelected: index == _currentIndex,
+                    builder: (BuildContext context, Animation<double> animation) {
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: mediaQuery.size.width > 600
+                            ? (mediaQuery.size.width - effectiveBottomPadding.horizontal) / 3
+                            : (mediaQuery.size.width - effectiveBottomPadding.horizontal) / 2
+                        ),
+                        child: _TabDestinationInfo(
+                          selectedIndex: _currentIndex ?? 0,
+                          selectedAnimation: animation,
+                          onTap: () => handleTap(index),
+                          child: wrappedTabs[index],
+                        ),
+                      );
+                    }
+                  );
+                },
+              ),
             ),
           ),
         ),
