@@ -17,7 +17,7 @@ class TabNavigationBar extends StatefulWidget implements PreferredSizeWidget {
     this.surfaceTintColor,
     this.shape,
     this.indicatorColor,
-  });
+  }) : assert(tabs.length <= 3);
 
   final List<Widget> tabs;
 
@@ -190,6 +190,9 @@ class _TabNavigationBarState extends State<TabNavigationBar> with SingleTickerPr
 
     void handleTap(int index) {
       assert(index >= 0 && index < widget.tabs.length);
+      setState(() {
+        _scrolledUnder = false;
+      });
       _controller!.animateTo(index);
       widget.onTap?.call(index);
     }
@@ -239,9 +242,7 @@ class _TabNavigationBarState extends State<TabNavigationBar> with SingleTickerPr
                     builder: (BuildContext context, Animation<double> animation) {
                       return ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxWidth: mediaQuery.size.width > 600
-                            ? (mediaQuery.size.width - effectiveBottomPadding.horizontal) / 3
-                            : (mediaQuery.size.width - effectiveBottomPadding.horizontal) / 2
+                          maxWidth: (mediaQuery.size.width - effectiveBottomPadding.horizontal) / 3,
                         ),
                         child: _TabDestinationInfo(
                           selectedIndex: _currentIndex ?? 0,
